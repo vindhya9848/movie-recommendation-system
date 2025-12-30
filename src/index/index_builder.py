@@ -26,41 +26,72 @@ class IndexBuilder:
 
     def build(self) -> None:
         """
-        Build FAISS index from movie embeddings and save it.
+        Build or append to FAISS index from movie embeddings.
         """
-        # Ensure data is loaded
         df = self.repository.get_all_movies()
 
         if "embedding_text" not in df.columns:
             raise ValueError("embedding_text column missing")
 
-        texts = df["embedding_text"].tolist()
+        if df.empty:
+            return
 
-        # Generate embeddings
+        # 👉 IMPORTANT: Only embed rows we are about to add
+        texts = df["embedding_text"].tolist()
         vectors = self.embedding_model.embed_texts(texts)
 
-        # Build FAISS index
-        index = FaissIndex(dim=vectors.shape[1])
-        index.build(vectors)
+        # Load or create index
+        if self.index_path.exists():
+            index = FaissIndex.load(self.index_path)
+        else:
+            index = FaissIndex(dim=vectors.shape[1])
 
-        # Persist index and mapping
+        # Append vectors (THIS is the real add)
+        index.add(vectors)
+
+        # Save index first
         index.save(self.index_path)
+
+        # Append mapping AFTER index.add()
         self._save_mapping(df)
+
+        # Safety check
+        self._validate_index_vs_mapping(index)
 
     def _save_mapping(self, df: pd.DataFrame) -> None:
         """
-        Save FAISS index → movie_id mapping.
+        Append FAISS index → movie_id mapping.
         """
-        movie_ids = df["movie_id"].to_numpy()
+        new_movie_ids = df["movie_id"].to_numpy()
+
         self.mapping_path.parent.mkdir(parents=True, exist_ok=True)
-        np.save(self.mapping_path, movie_ids)
+
+        if self.mapping_path.exists():
+            existing_movie_ids = np.load(self.mapping_path)
+            combined_movie_ids = np.concatenate(
+                [existing_movie_ids, new_movie_ids]
+            )
+        else:
+            combined_movie_ids = new_movie_ids
+
+        np.save(self.mapping_path, combined_movie_ids)
+
+    def _validate_index_vs_mapping(self, index: FaissIndex) -> None:
+        """
+        Ensure FAISS index and mapping stay aligned.
+        """
+        movie_ids = np.load(self.mapping_path)
+        if index.index.ntotal != len(movie_ids):
+            raise RuntimeError(
+                f"FAISS index size ({index.index.ntotal}) "
+                f"!= mapping size ({len(movie_ids)})"
+            )
 
     def load_index(self) -> tuple[FaissIndex, np.ndarray]:
         """
         Load FAISS index and movie_id mapping.
         """
-        index = FaissIndex(dim=0)
-        index.load(self.index_path)
+        index = FaissIndex.load(self.index_path)
 
         if not self.mapping_path.exists():
             raise FileNotFoundError(
