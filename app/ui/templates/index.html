@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MovieBot</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-left">
+      <h1>MovieBot</h1>
+      <p class="subtitle">Mood → Genre → Preferences → Top picks</p>
+      <div class="chip-row">
+        <span class="chip">FAISS</span>
+        <span class="chip">Sentence-BERT</span>
+        <span class="chip">FastAPI</span>
+        <span class="chip">LLM Extraction</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <img src="/static/moviebot.svg" alt="MovieBot graphic" />
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="chat">
+      <div id="messages" class="messages">
+        <div class="msg bot">
+          <div class="bubble">
+            Hi I am your movie assistant Nova!🎭.
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <input id="input" type="text" placeholder="Type your message..." autocomplete="off" />
+        <button id="send">Send</button>
+      </div>
+
+      <div id="hint" class="hint">
+        Tip: try “I had a stressful day” → “yes” → “something like Frozen” → “english” → “under 2 hours”
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Recommendations</h2>
+      <div id="recs" class="recs empty">
+        <div class="empty-state">
+          Your movie cards will show up here.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
